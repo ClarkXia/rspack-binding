@@ -183,5 +183,47 @@ impl Loader<RunnerContext> for CompilationLoader {
   }
 }
 
-// TODO: Add CompilationLoaderPlugin when needed
-// This would provide the loader through rspack's plugin system
+use std::sync::Arc;
+use rspack_core::{NormalModuleFactoryResolveLoader, Plugin, ApplyContext};
+use rspack_hook::{plugin, plugin_hook};
+
+#[plugin]
+#[derive(Debug)]
+pub struct CompilationLoaderPlugin;
+
+impl CompilationLoaderPlugin {
+  pub fn new() -> Self {
+    Self::new_inner()
+  }
+}
+
+#[plugin_hook(NormalModuleFactoryResolveLoader for CompilationLoaderPlugin, tracing = false)]
+pub(crate) async fn resolve_loader(
+  &self,
+  _context: &rspack_core::Context,
+  _resolver: &rspack_core::Resolver,
+  loader: &rspack_core::ModuleRuleUseLoader,
+) -> Result<Option<rspack_core::BoxLoader>> {
+  if loader.loader.starts_with(COMPILATION_LOADER_IDENTIFIER) {
+    let options = loader.options.clone().unwrap_or_default();
+    let compilation_loader = CompilationLoader::new(&options)
+      .map_err(|e| rspack_error::error!("Failed to create CompilationLoader: {}", e))?;
+    return Ok(Some(Arc::new(compilation_loader)));
+  }
+
+  Ok(None)
+}
+
+impl Plugin for CompilationLoaderPlugin {
+  fn name(&self) -> &'static str {
+    "CompilationLoaderPlugin"
+  }
+
+  fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
+    ctx
+      .normal_module_factory_hooks
+      .resolve_loader
+      .tap(resolve_loader::new(self));
+    Ok(())
+  }
+}

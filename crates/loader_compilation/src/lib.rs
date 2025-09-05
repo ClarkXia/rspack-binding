@@ -1,5 +1,6 @@
 mod options;
 mod transformer;
+mod transforms;
 
 use std::{default::Default, path::Path};
 

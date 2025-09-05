@@ -1,97 +1,53 @@
 use swc_core::ecma::ast::Pass;
-use swc_core::ecma::visit::{Fold, fold_pass, noop_fold_type};
+use crate::options::{TransformFeatures, ChangeConfig};
+use crate::transforms::{
+  env_replacement::env_replacement,
+  keep_export::keep_export,
+  remove_export::remove_export,
+  named_import_transform::{named_import_transform, TransformConfig},
+  change_package_import::{change_package_import, Config},
+};
 
-use crate::options::TransformFeatures;
-
-pub(crate) fn transform(_transform_features: &TransformFeatures) -> impl Pass + '_ {
-  // For now, return a no-op transform
-  // In the future, this will chain together all the custom transforms
-  fold_pass(NoOpTransform)
-}
-
-// Placeholder transforms that can be extended later
-struct NoOpTransform;
-
-impl Fold for NoOpTransform {
-  noop_fold_type!();
-}
-
-// Environment replacement transform
-pub struct EnvReplacement {
-  sources: Vec<String>,
-}
-
-impl Fold for EnvReplacement {
-  noop_fold_type!();
+pub(crate) fn transform(transform_features: &TransformFeatures) -> impl Pass + '_ {
+  // Chain transforms based on enabled features
+  let mut passes: Vec<Box<dyn Pass>> = Vec::new();
   
-  // TODO: Implement env replacement logic
-  // This would replace process.env.* with actual values
-}
-
-pub fn env_replacement(sources: Vec<String>) -> impl Pass {
-  fold_pass(EnvReplacement { sources })
-}
-
-// Keep export transform
-pub struct KeepExport {
-  keep_exports: Vec<String>,
-}
-
-impl Fold for KeepExport {
-  noop_fold_type!();
+  if let Some(sources) = &transform_features.env_replacement {
+    passes.push(Box::new(env_replacement(sources.clone())));
+  }
   
-  // TODO: Implement keep export logic
-  // This would keep only specified exports
-}
-
-pub fn keep_export(exports: Vec<String>) -> impl Pass {
-  fold_pass(KeepExport { keep_exports: exports })
-}
-
-// Remove export transform
-pub struct RemoveExport {
-  remove_exports: Vec<String>,
-}
-
-impl Fold for RemoveExport {
-  noop_fold_type!();
+  if let Some(exports) = &transform_features.keep_export {
+    passes.push(Box::new(keep_export(exports.clone())));
+  }
   
-  // TODO: Implement remove export logic
-  // This would remove specified exports
-}
-
-pub fn remove_export(exports: Vec<String>) -> impl Pass {
-  fold_pass(RemoveExport { remove_exports: exports })
-}
-
-// Named import transform
-pub struct NamedImportTransform {
-  packages: Vec<String>,
-}
-
-impl Fold for NamedImportTransform {
-  noop_fold_type!();
+  if let Some(exports) = &transform_features.remove_export {
+    passes.push(Box::new(remove_export(exports.clone())));
+  }
   
-  // TODO: Implement named import transform logic
-  // This would transform named imports for specified packages
-}
-
-pub fn named_import_transform(packages: Vec<String>) -> impl Pass {
-  fold_pass(NamedImportTransform { packages })
-}
-
-// Change package import transform
-pub struct ChangePackageImport {
-  // TODO: Define proper config structure
-}
-
-impl Fold for ChangePackageImport {
-  noop_fold_type!();
+  if let Some(config) = &transform_features.named_import_transform {
+    passes.push(Box::new(named_import_transform(TransformConfig {
+      packages: config.packages.clone(),
+    })));
+  }
   
-  // TODO: Implement change package import logic
-  // This would change package imports based on configuration
+  if let Some(configs) = &transform_features.change_package_import {
+    let change_configs: Vec<Config> = configs.iter().map(|c| match c {
+      ChangeConfig::LiteralConfig(s) => Config::LiteralConfig(s.clone()),
+    }).collect();
+    passes.push(Box::new(change_package_import(change_configs)));
+  }
+  
+  ChainedTransform { passes }
 }
 
-pub fn change_package_import() -> impl Pass {
-  fold_pass(ChangePackageImport {})
+struct ChainedTransform {
+  passes: Vec<Box<dyn Pass>>,
+}
+
+impl Pass for ChainedTransform {
+  fn process(&mut self, program: &mut swc_core::ecma::ast::Program) {
+    for pass in &mut self.passes {
+      pass.process(program);
+    }
+  }
 }

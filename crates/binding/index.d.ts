@@ -7,9 +7,9 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare function registerMyBannerLoaderPlugin(): void
+export declare function registerCompilationLoaderPlugin(): void
 
-export declare function registerMyBannerPlugin(): void
+export declare function registerManifestPlugin(): void
 export declare class Assets {
   keys(): Array<string>
 }
@@ -415,6 +415,10 @@ export declare class VirtualFileStore {
 }
 export type JsVirtualFileStore = VirtualFileStore
 
+export interface AssetInfoRelated {
+  sourceMap?: string | null
+}
+
 export declare function async(path: string, request: string): Promise<ResolveResult>
 
 export interface BuiltinPlugin {
@@ -592,10 +596,6 @@ export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
   targetPath: string
-}
-
-export interface JsAssetInfoRelated {
-  sourceMap?: string
 }
 
 export interface JsBannerContentFnCtx {
@@ -1423,7 +1423,7 @@ export interface KnownAssetInfo {
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related?: JsAssetInfoRelated
+  related?: AssetInfoRelated
   /** unused css local ident for the css chunk */
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
@@ -2268,11 +2268,11 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  currentActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
-  cacheable: boolean
+  client: string
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2328,11 +2328,6 @@ export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
   maxChunks: number
-}
-
-export interface RawModuleArg {
-  module: string
-  path: string
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

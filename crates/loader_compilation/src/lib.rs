@@ -92,6 +92,16 @@ impl CompilationLoader {
         ));
       }
 
+      #[cfg(feature = "plugin")]
+      {
+        swc_options.runtime_options =
+          swc_options
+            .runtime_options
+            .plugin_runtime(std::sync::Arc::new(
+              rspack_util::swc::runtime::WasmtimeRuntime,
+            ));
+      }
+
       swc_options
     };
 

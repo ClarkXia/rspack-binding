@@ -177,6 +177,7 @@ fn create_bool_expr(value: bool) -> Expr {
   }))
 }
 
+#[allow(dead_code)]
 pub fn keep_platform(options: KeepPlatformConfig) -> impl swc_core::ecma::ast::Pass {
   let platform: String = match options {
     KeepPlatformConfig::KeepPlatform(platform) => platform,

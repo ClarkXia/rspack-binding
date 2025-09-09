@@ -108,7 +108,7 @@ impl Fold for KeepExportImpl {
 
     items.retain(|s| !matches!(s, ModuleItem::Stmt(Stmt::Empty(..))));
 
-    if items.len() == 0 {
+    if items.is_empty() {
       items.push(ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(
         NamedExport {
           span: DUMMY_SP,
@@ -334,7 +334,7 @@ impl KeepExportAnalyzer<'_> {
       return e;
     }
 
-    return e;
+    e
   }
 }
 
@@ -514,16 +514,15 @@ impl Fold for KeepExportAnalyzer<'_> {
       }
     }
 
-    let s = s.fold_children_with(self);
-    s
+    s.fold_children_with(self)
   }
 
   fn fold_default_decl(&mut self, d: DefaultDecl) -> DefaultDecl {
-    return self.check_default(d);
+    self.check_default(d)
   }
 
   fn fold_export_default_expr(&mut self, e: ExportDefaultExpr) -> ExportDefaultExpr {
-    return self.check_default(e);
+    self.check_default(e)
   }
 
   fn fold_prop(&mut self, p: Prop) -> Prop {

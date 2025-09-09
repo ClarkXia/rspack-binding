@@ -55,7 +55,7 @@ impl RemoveExportImpl {
   }
 
   fn create_empty_fn(&mut self) -> FnExpr {
-    return FnExpr {
+    FnExpr {
       ident: None,
       function: Box::new(Function {
         params: vec![],
@@ -72,7 +72,7 @@ impl RemoveExportImpl {
         type_params: None,
         ctxt: Default::default(),
       }),
-    };
+    }
   }
 }
 
@@ -356,7 +356,7 @@ impl RemoveExportAnalyzer<'_> {
       return e;
     }
 
-    return e.fold_children_with(self);
+    e.fold_children_with(self)
   }
 }
 
@@ -414,7 +414,7 @@ impl Fold for RemoveExportAnalyzer<'_> {
 
     self.in_data_fn = old_in_data;
 
-    return e;
+    e
   }
 
   fn fold_expr(&mut self, e: Expr) -> Expr {
@@ -513,11 +513,11 @@ impl Fold for RemoveExportAnalyzer<'_> {
   }
 
   fn fold_default_decl(&mut self, d: DefaultDecl) -> DefaultDecl {
-    return self.check_default(d);
+    self.check_default(d)
   }
 
   fn fold_export_default_expr(&mut self, e: ExportDefaultExpr) -> ExportDefaultExpr {
-    return self.check_default(e);
+    self.check_default(e)
   }
 
   fn fold_prop(&mut self, p: Prop) -> Prop {

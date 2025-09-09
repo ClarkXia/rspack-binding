@@ -10,7 +10,7 @@ use swc_core::{
 pub struct NodeTransform;
 
 fn create_import_str(key: i32) -> String {
-  format!("__ice_import_{}__", key)
+  format!("__ice_import_{key}__")
 }
 
 fn create_var_decl(id: &str, init: Option<Box<Expr>>) -> VarDeclarator {
@@ -238,7 +238,7 @@ impl Fold for NodeTransform {
     for module_item in items.iter() {
       match module_item {
         ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) => {
-          let import_val = format!("__ice_import_{}__", import_id);
+          let import_val = format!("__ice_import_{import_id}__");
           import_id += 1;
           new_module_items.push(create_import_decl(&import_val, &import_decl.src.value));
 
@@ -308,19 +308,16 @@ impl Fold for NodeTransform {
               ExportSpecifier::Named(named) => {
                 let ExportNamedSpecifier { orig, exported, .. } = named;
                 let orig_name = get_module_name(orig);
-                let export_name;
-                let return_value;
-
-                if let Some(exported_ident) = exported {
-                  export_name = get_module_name(exported_ident);
+                let export_name = if let Some(exported_ident) = exported {
+                  get_module_name(exported_ident)
                 } else {
-                  export_name = orig_name;
-                }
-                if has_import {
-                  return_value = format!("{}.{}", import_val, orig_name);
+                  orig_name
+                };
+                let return_value = if has_import {
+                  format!("{import_val}.{orig_name}")
                 } else {
-                  return_value = orig_name.to_string();
-                }
+                  orig_name.to_string()
+                };
                 new_module_items.push(create_define_export(export_name, &return_value));
               }
               ExportSpecifier::Namespace(namespace) => {
@@ -451,6 +448,7 @@ impl Fold for NodeTransform {
   }
 }
 
+#[allow(dead_code)]
 pub fn node_transform() -> impl swc_core::ecma::ast::Pass {
   fold_pass(NodeTransform)
 }

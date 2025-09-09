@@ -27,6 +27,12 @@ pub struct AssetsManifest {
 
 const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 
+impl Default for ManifestPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl ManifestPlugin {
   pub fn new() -> Self {
     Self::new_inner()
@@ -49,7 +55,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let entry_points = &compilation.entrypoints;
   let assets = &compilation.assets();
 
-  assets.into_iter().for_each(|(_, asset)| {
+  assets.iter().for_each(|(_, asset)| {
     let version = &asset.info.version;
     let source_file = &asset.info.source_filename;
     if let Some(name) = source_file {

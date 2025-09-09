@@ -191,6 +191,12 @@ use rspack_hook::{plugin, plugin_hook};
 #[derive(Debug)]
 pub struct CompilationLoaderPlugin;
 
+impl Default for CompilationLoaderPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl CompilationLoaderPlugin {
   pub fn new() -> Self {
     Self::new_inner()

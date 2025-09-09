@@ -100,7 +100,7 @@ fn build_regex_test_expression() -> Expr {
     span: DUMMY_SP,
   });
 
-  let test_call = Expr::Call(CallExpr {
+  Expr::Call(CallExpr {
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       obj: Box::new(regex_pattern),
       prop: MemberProp::Ident(Ident::new("test".into(), DUMMY_SP, SyntaxContext::empty()).into()),
@@ -113,9 +113,7 @@ fn build_regex_test_expression() -> Expr {
     span: DUMMY_SP,
     type_args: None,
     ctxt: Default::default(),
-  });
-
-  test_call
+  })
 }
 
 fn get_env_expr(specifier: &Ident) -> Expr {
@@ -187,9 +185,9 @@ fn get_env_expr(specifier: &Ident) -> Expr {
 }
 
 fn create_env_declare(specifier: &Ident, imported: &Ident) -> Stmt {
-  let expr = get_env_expr(&specifier);
+  let expr = get_env_expr(specifier);
 
-  return Stmt::Decl(Decl::Var(Box::new(VarDecl {
+  Stmt::Decl(Decl::Var(Box::new(VarDecl {
     span: DUMMY_SP,
     kind: VarDeclKind::Var,
     declare: false,
@@ -203,7 +201,7 @@ fn create_env_declare(specifier: &Ident, imported: &Ident) -> Stmt {
       init: Some(Box::new(expr)),
       definite: false,
     }],
-  })));
+  })))
 }
 
 fn create_env_default_export(export_name: Ident) -> Stmt {
@@ -240,7 +238,7 @@ fn create_env_default_export(export_name: Ident) -> Stmt {
         .map(|target| {
           PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
             key: PropName::Ident(Ident::new(target.into(), DUMMY_SP, SyntaxContext::empty()).into()),
-            value: Box::new(get_env_expr(&Ident::new(target.into(), DUMMY_SP, SyntaxContext::empty()).into())),
+            value: Box::new(get_env_expr(&Ident::new(target.into(), DUMMY_SP, SyntaxContext::empty()))),
           })))
         })
         .collect(),
@@ -250,7 +248,7 @@ fn create_env_default_export(export_name: Ident) -> Stmt {
   })))
 }
 
-fn get_env_stmt(sources: &Vec<String>, decls: Vec<VarDeclarator>) -> Vec<Stmt> {
+fn get_env_stmt(sources: &[String], decls: Vec<VarDeclarator>) -> Vec<Stmt> {
   let mut stmts = vec![];
   for decl in decls {
     if let Some(init) = decl.init {
@@ -261,22 +259,22 @@ fn get_env_stmt(sources: &Vec<String>, decls: Vec<VarDeclarator>) -> Vec<Stmt> {
       }) = *init {
         if let Expr::Ident(Ident { ref sym, .. }) = **callee_expr {
           if sym == "require" && call_args.len() == 1 {
-            if let ExprOrSpread {
+            let ExprOrSpread {
               expr: ref expr_box,
               ..
-            } = call_args[0] {
-              if let Expr::Lit(Lit::Str(Str { ref value, .. })) = **expr_box {
-                if sources.iter().any(|s| value == s) {
-                  match &decl.name {
-                    Pat::Ident(BindingIdent { id, .. }) => {
-                      stmts.push(create_env_default_export(id.clone()));
-                    }
-                    Pat::Object(ObjectPat { props, .. }) => {
+            } = call_args[0];
+            if let Expr::Lit(Lit::Str(Str { ref value, .. })) = **expr_box {
+              if sources.iter().any(|s| value == s) {
+                match &decl.name {
+                  Pat::Ident(BindingIdent { id, .. }) => {
+                    stmts.push(create_env_default_export(id.clone()));
+                  }
+                  Pat::Object(ObjectPat { props, .. }) => {
                       props.iter().for_each(|prop| match prop {
                         ObjectPatProp::Assign(AssignPatProp { key, value, .. }) => {
                           if value.is_some() {
                             if let Expr::Ident(ident) = &**value.as_ref().unwrap() {
-                              stmts.push(create_env_declare(key, &ident));
+                              stmts.push(create_env_declare(key, ident));
                             }
                           } else {
                             stmts.push(create_env_declare(key, key));
@@ -285,7 +283,7 @@ fn get_env_stmt(sources: &Vec<String>, decls: Vec<VarDeclarator>) -> Vec<Stmt> {
                         ObjectPatProp::KeyValue(KeyValuePatProp { key, value, .. }) => {
                           if let Pat::Ident(BindingIdent { id, .. }) = &**value {
                             if let PropName::Ident(i) = key {
-                              stmts.push(create_env_declare(&Ident::from(i.as_ref()), &id));
+                              stmts.push(create_env_declare(&Ident::from(i.as_ref()), id));
                             }
                           }
                         }
@@ -296,10 +294,9 @@ fn get_env_stmt(sources: &Vec<String>, decls: Vec<VarDeclarator>) -> Vec<Stmt> {
                         }
                       });
                     }
-                    _ => {}
-                  }
-                  continue;
+                  _ => {}
                 }
+                continue;
               }
             }
           }
@@ -327,8 +324,8 @@ impl Fold for EnvReplacementImpl {
                     Some(ModuleExportName::Ident(ident)) => Some(ident),
                     _ => None,
                   };
-                  let s = if imported.is_some() {
-                    imported.unwrap()
+                  let s = if let Some(imported) = imported {
+                    imported
                   } else {
                     &named_specifier.local
                   };
@@ -354,10 +351,10 @@ impl Fold for EnvReplacementImpl {
         }
         ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
           let stmt = get_env_stmt(&self.sources, var_decl.decls.clone());
-          if stmt.len() > 0 {
+          if !stmt.is_empty() {
             let module_stmts = stmt
               .into_iter()
-              .map(|s| ModuleItem::Stmt(s))
+              .map(ModuleItem::Stmt)
               .collect::<Vec<ModuleItem>>();
             new_module_items.extend_from_slice(&module_stmts);
           } else {
@@ -381,7 +378,7 @@ impl Fold for EnvReplacementImpl {
       .for_each(|stmt| match &stmt {
         Stmt::Decl(Decl::Var(var_decl)) => {
           let env_stmts = get_env_stmt(&self.sources, var_decl.decls.clone());
-          if env_stmts.len() > 0 {
+          if !env_stmts.is_empty() {
             new_stmts.extend_from_slice(&env_stmts);
           } else {
             new_stmts.push(stmt);

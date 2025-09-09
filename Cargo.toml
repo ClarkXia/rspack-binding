@@ -24,6 +24,19 @@ rspack_binding_builder_macros = { version = "=0.5.2" }
 napi        = { version = "=3.2.2" }
 napi-derive = { version = "=3.2.2" }
 
+# SWC dependencies
+swc_config = { version = "3.1.1", default-features = false }
+swc_core = { version = "37.0.0", default-features = false, features = [
+  "base",
+  "ecma_ast",
+  "common",
+  "ecma_preset_env",
+  "__visit",
+  "parallel_rayon",
+] }
+swc_ecma_lexer = { version = "=23.0.1", default-features = false }
+swc_error_reporters = { version = "16.0.1", default-features = false }
+
 
 # Copied from https://github.com/web-infra-dev/rspack/blob/main/Cargo.toml
 
